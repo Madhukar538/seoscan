@@ -1,0 +1,24 @@
+{
+  "name": "h1-checker",
+  "version": "1.0.0",
+  "description": "CLI tool to check whether URLs contain an H1 tag",
+  "main": "server.js",
+  "bin": {
+    "check-h1": "./check-h1.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "cli": "node check-h1.js",
+    "test": "node test/test-run.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "abort-controller": "^3.0.0",
+    "csv-parse": "^5.4.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1"
+  }
+}

@@ -1,0 +1,3 @@
+url,status,ok,hasH1,h1,error
+https://example.com,200,true,true,Example Domain,
+https://httpstat.us/204,204,true,false,,non-html content-type: 

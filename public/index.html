@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>H1 Checker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">H1</span>
+        <div>
+          <div class="brand-title">H1 Checker</div>
+          <div class="brand-sub">Sitemap-driven SEO scan</div>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="pill">Live sitemap checks</span>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">Workflow</div>
+          <div class="sidebar-item">1. Enter sitemap URL</div>
+          <div class="sidebar-item">2. Load &amp; auto-check</div>
+          <div class="sidebar-item">3. Export CSV</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title">Notes</div>
+          <div class="sidebar-item">Auto-detects title, meta, canonical.</div>
+          <div class="sidebar-item">Tracks H1 count, length, and missing H1s.</div>
+          <div class="sidebar-item">Live status split (2xx/4xx/5xx).</div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <div class="container">
+          <h1>H1 Checker</h1>
+          <p>Enter a sitemap.xml URL and we'll load + check it.</p>
+          <div class="sitemap-controls">
+          <div class="mode-toggle" role="group" aria-label="Input mode">
+            <label class="mode-option">
+              <input id="modeSite" type="radio" name="inputMode" value="site" checked />
+              <span>Site URL</span>
+            </label>
+            <label class="mode-option">
+              <input id="modeSitemap" type="radio" name="inputMode" value="sitemap" />
+              <span>Sitemap URL</span>
+            </label>
+          </div>
+          <label class="sitemap-label" id="sitemapLabel" for="sitemapUrl">Site URL</label>
+          <div class="sitemap-row">
+            <input id="sitemapUrl" type="url" placeholder="https://example.com" />
+            <button id="loadSitemap">Check</button>
+            <span id="sitemapLoader" class="loader hidden" aria-hidden="true"></span>
+          </div>
+          <div class="sitemap-meta">Total URLs found: <strong id="urlCount">0</strong></div>
+        </div>
+      <div class="controls">
+        <button id="clear">Clear</button>
+      </div>
+      <div id="export-controls" class="export-controls hidden">
+        <label>Export CSV:
+          <select id="exportFilter">
+                <option value="all">All results</option>
+                <option value="success">Only success</option>
+                <option value="fail">Only fail</option>
+        </select>
+        </label>
+        <button id="exportCsv">Export</button>
+      </div>
+      <div id="siteBadge" class="site-badge hidden">
+        <img id="favicon" alt="Site favicon" />
+        <span id="siteHost"></span>
+      </div>
+      <div id="summary" class="summary hidden">
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">Total checked</div>
+                <div class="summary-value" id="sumTotal">0</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">With H1</div>
+                <div class="summary-value" id="sumH1">0</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Missing H1</div>
+                <div class="summary-value" id="sumMissingH1">0</div>
+              </div>
+            <div class="summary-card">
+              <div class="summary-label">Multiple H1s</div>
+              <div class="summary-value" id="sumMultipleH1">0</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Time taken</div>
+              <div class="summary-value" id="sumTime">0s</div>
+            </div>
+          </div>
+            <div class="status-grid">
+              <div class="summary-card status-pie-card">
+                <div class="summary-label">Status split</div>
+                <div class="status-pie" id="statusPie"></div>
+                <div class="status-legend">
+                  <span><i class="dot dot-200"></i>200</span>
+                  <span><i class="dot dot-4xx"></i>4xx</span>
+                  <span><i class="dot dot-5xx"></i>5xx</span>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">200</div>
+                <div class="summary-value" id="sum200">0</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">4xx</div>
+                <div class="summary-value" id="sum4xx">0</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">5xx</div>
+                <div class="summary-value" id="sum5xx">0</div>
+              </div>
+            </div>
+          </div>
+          <div id="status"></div>
+          <div class="accordion">
+            <button id="resultsToggle" class="accordion-toggle" type="button" aria-expanded="false" aria-controls="resultsPanel" disabled>Show results table</button>
+            <div id="resultsPanel" class="accordion-panel hidden">
+            <table id="results">
+              <thead><tr><th>URL</th><th>Status</th><th>OK</th><th>respMs</th><th>hasH1</th><th>h1Count</th><th>h1Length</th><th>multipleH1</th><th>title</th><th>metaDescription</th><th>canonical</th><th>h1</th><th>error</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <span>H1 Checker</span>
+      <span>Copyrights @ Revalsys Technologies</span>
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
