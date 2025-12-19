@@ -62,6 +62,16 @@ Adjust concurrency with `--concurrency` (default 5):
 node check-h1.js --file urls.txt --concurrency 10
 ```
 
+## Environment
+- Copy `.env.example` to `.env` to override defaults for the web server.
+- `PORT`: port for the Express server (default `3002`).
+- `DEFAULT_CONCURRENCY`: fallback concurrency for API checks (default `5`).
+- `REQUEST_TIMEOUT_MS`: timeout for outbound fetches (default `15000`).
+- `JOB_TTL_MINUTES`: minutes to keep job results in memory (default `10`).
+- `UPLOAD_LIMIT_MB`: max CSV upload size in MB (default `5`).
+- `SITEMAP_MAX_DEPTH`: max sitemap depth when walking sitemap indexes (default `5`).
+- `USER_AGENT`: UA string sent with outbound requests (default `h1-checker/1.0`).
+
 ## Notes
 - Requires Node.js 18+ for global `fetch` (or use a fetch polyfill).
 - Installs `cheerio` to parse HTML.

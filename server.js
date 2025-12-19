@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -7,6 +8,13 @@ const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const { randomUUID } = require('crypto');
 
+const defaultConcurrency = Math.max(1, Number(process.env.DEFAULT_CONCURRENCY) || 5);
+const requestTimeoutMs = Math.max(1000, Number(process.env.REQUEST_TIMEOUT_MS) || 15000);
+const jobTtlMs = Math.max(1, Number(process.env.JOB_TTL_MINUTES) || 10) * 60 * 1000;
+const uploadLimitMb = Math.max(1, Number(process.env.UPLOAD_LIMIT_MB) || 5);
+const userAgent = process.env.USER_AGENT || 'h1-checker/1.0';
+const sitemapMaxDepth = Math.max(1, Number(process.env.SITEMAP_MAX_DEPTH) || 5);
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -15,10 +23,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const AbortControllerImpl = global.AbortController || AbortController;
 
 // multer setup (memory storage) for CSV uploads
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: uploadLimitMb * 1024 * 1024 } });
 
 const jobs = new Map();
-const jobTtlMs = 10 * 60 * 1000;
 
 function initSse(res) {
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -71,7 +78,8 @@ function pushJobEvent(job, event, payload) {
     job.clients.clear();
   }
 }
-async function fetchWithTimeout(url, ms = 15000) {
+
+async function fetchWithTimeout(url, ms = requestTimeoutMs) {
   const controller = new AbortControllerImpl();
   let fetchPromise;
   let timeoutId;
@@ -84,7 +92,7 @@ async function fetchWithTimeout(url, ms = 15000) {
     }, ms);
   });
   try {
-    fetchPromise = fetch(url, { signal: controller.signal, redirect: 'follow', headers: { 'User-Agent': 'h1-checker/1.0' } });
+    fetchPromise = fetch(url, { signal: controller.signal, redirect: 'follow', headers: { 'User-Agent': userAgent } });
     const res = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(timeoutId);
     return res;
@@ -153,7 +161,7 @@ async function checkUrl(url) {
   return out;
 }
 
-async function run(urls, concurrency = 5) {
+async function run(urls, concurrency = defaultConcurrency) {
   const results = new Array(urls.length);
   let i = 0;
   async function worker() {
@@ -191,7 +199,7 @@ async function run(urls, concurrency = 5) {
   return results;
 }
 
-async function runStreaming(urls, concurrency, onResult, shouldStop) {
+async function runStreaming(urls, concurrency = defaultConcurrency, onResult, shouldStop) {
   let i = 0;
   async function worker() {
     while (true) {
@@ -250,7 +258,7 @@ app.post('/api/check', async (req, res) => {
   try {
     const { urls, concurrency } = req.body;
     if (!Array.isArray(urls) || urls.length === 0) return res.status(400).json({ error: 'urls must be a non-empty array' });
-    const results = await run(urls, Number(concurrency) || 5);
+    const results = await run(urls, Number(concurrency) || defaultConcurrency);
     res.json({ results });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -267,7 +275,7 @@ app.post('/api/check-job', async (req, res) => {
   pushJobEvent(job, 'start', { total: job.total });
   res.json({ jobId: job.id, total: job.total });
 
-  runStreaming(urls, Number(concurrency) || 5, (index, result) => {
+  runStreaming(urls, Number(concurrency) || defaultConcurrency, (index, result) => {
     if (job.cancelled) return;
     job.results[index] = result;
     job.processed += 1;
@@ -418,7 +426,7 @@ app.get('/api/sitemap-stream', async (req, res) => {
   const visitedSitemaps = new Set();
   const seenUrls = new Set();
   const queue = [{ url: sitemapUrl, depth: 0 }];
-  const maxDepth = 5;
+  const maxDepth = sitemapMaxDepth;
   let total = 0;
 
   try {
@@ -501,7 +509,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-const port = process.env.PORT || 3002;
+const port = Number(process.env.PORT) || 3002;
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });

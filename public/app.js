@@ -18,6 +18,8 @@ const urlCountEl = document.getElementById('urlCount');
 const sitemapLabelEl = document.getElementById('sitemapLabel');
 const modeSiteEl = document.getElementById('modeSite');
 const modeSitemapEl = document.getElementById('modeSitemap');
+const statusBarEl = document.getElementById('statusBar');
+const statusFillEl = statusBarEl ? statusBarEl.querySelector('.status-fill') : null;
 const siteBadgeEl = document.getElementById('siteBadge');
 const faviconEl = document.getElementById('favicon');
 const siteHostEl = document.getElementById('siteHost');
@@ -42,6 +44,7 @@ let resultsCollapsed = false;
 let loadedUrls = [];
 const defaultConcurrency = 10;
 let checkStartTs = null;
+let checkTimerId = null;
 
 clearBtn.addEventListener('click', ()=>{
   if (checkSource) {
@@ -60,7 +63,7 @@ clearBtn.addEventListener('click', ()=>{
   resetResults();
   loadedUrls = [];
   urlCountEl.textContent = '0';
-  statusEl.textContent='';
+  setStatus('');
   hideFavicon();
 });
 
@@ -79,7 +82,7 @@ loadSitemapBtn.addEventListener('click', () => {
   resetResults();
   loadedUrls = [];
   updateUrlCount();
-  statusEl.textContent = 'Fetching sitemap...';
+  setStatus('Fetching sitemap...');
   sitemapLoader.classList.remove('hidden');
   loadSitemapBtn.disabled = true;
   const sitemapUrl = getInputMode() === 'site' ? buildSitemapUrl(baseUrl) : normalizeUrl(baseUrl);
@@ -108,7 +111,7 @@ loadSitemapBtn.addEventListener('click', () => {
       for (const u of data.urls) loadedUrls.push(u);
       total = typeof data.total === 'number' ? data.total : loadedUrls.length;
       urlCountEl.textContent = String(total);
-      statusEl.textContent = `Found ${total} URLs...`;
+      setStatus(`Found ${total} URLs...`);
     }
   });
 
@@ -116,20 +119,20 @@ loadSitemapBtn.addEventListener('click', () => {
     const data = JSON.parse(evt.data || '{}');
     total = typeof data.total === 'number' ? data.total : loadedUrls.length;
     urlCountEl.textContent = String(total);
-    statusEl.textContent = `Loaded ${total} URLs. Starting check...`;
+    setStatus(`Loaded ${total} URLs. Starting check...`);
     finish();
     startCheck(loadedUrls);
   });
 
   es.addEventListener('failed', (evt) => {
     const data = JSON.parse(evt.data || '{}');
-    statusEl.textContent = `Error: ${data.error || 'Sitemap load failed'}`;
+    setStatus(`Error: ${data.error || 'Sitemap load failed'}`);
     finish();
   });
 
   es.onerror = () => {
     if (!finished) {
-      statusEl.textContent = 'Error: sitemap stream disconnected';
+      setStatus('Error: sitemap stream disconnected');
       finish();
     }
   };
@@ -147,6 +150,65 @@ function renderResults(rows){
 
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+function setStatus(text, loading){
+  if (!text) {
+    statusEl.textContent = '';
+    resetProgressBar();
+    stopElapsedTimer();
+    return;
+  }
+  if (loading) {
+    statusEl.innerHTML = `<span>${escapeHtml(text)}</span><span class="status-loader" aria-hidden="true"></span>`;
+  } else {
+    statusEl.textContent = text;
+  }
+}
+
+function resetProgressBar(){
+  if (!statusBarEl || !statusFillEl) return;
+  statusBarEl.classList.add('hidden');
+  statusBarEl.setAttribute('aria-hidden', 'true');
+  statusBarEl.setAttribute('aria-valuenow', '0');
+  statusFillEl.style.width = '0%';
+  statusFillEl.textContent = '';
+}
+
+function updateProgressBar(processed, total){
+  if (!statusBarEl || !statusFillEl) return;
+  const safeTotal = Math.max(0, Number(total) || 0);
+  if (safeTotal === 0) {
+    resetProgressBar();
+    return;
+  }
+  const safeProcessed = Math.min(Math.max(0, Number(processed) || 0), safeTotal);
+  const pct = Math.min(100, Math.round((safeProcessed / safeTotal) * 100));
+  statusBarEl.classList.remove('hidden');
+  statusBarEl.setAttribute('aria-hidden', 'false');
+  statusBarEl.setAttribute('aria-valuemin', '0');
+  statusBarEl.setAttribute('aria-valuemax', '100');
+  statusBarEl.setAttribute('aria-valuenow', String(pct));
+  statusFillEl.style.width = `${pct}%`;
+  statusFillEl.textContent = `${pct}%`;
+}
+
+function startElapsedTimer(){
+  stopElapsedTimer();
+  if (!sumTimeEl) return;
+  sumTimeEl.textContent = '0s';
+  checkTimerId = setInterval(() => {
+    if (checkStartTs) {
+      sumTimeEl.textContent = formatDuration(Date.now() - checkStartTs);
+    }
+  }, 1000);
+}
+
+function stopElapsedTimer(){
+  if (checkTimerId) {
+    clearInterval(checkTimerId);
+    checkTimerId = null;
+  }
+}
+
 function appendResultRow(r){
   const tr = document.createElement('tr');
   const url = r && r.url ? r.url : '';
@@ -160,6 +222,8 @@ function resetResults(){
   resultsCollapsed = true;
   resultsToggle.disabled = true;
   setResultsPanelVisible(false);
+  resetProgressBar();
+  stopElapsedTimer();
   exportControls.classList.add('hidden');
   lastResults = [];
   summaryEl.classList.add('hidden');
@@ -302,7 +366,8 @@ function listenToCheckStream(jobId, totalHint){
   const finish = (message) => {
     if (finished) return;
     finished = true;
-    if (message) statusEl.textContent = message;
+    stopElapsedTimer();
+    if (message) setStatus(message);
     if (checkSource) {
       checkSource.close();
       checkSource = null;
@@ -314,13 +379,16 @@ function listenToCheckStream(jobId, totalHint){
   es.addEventListener('start', (evt) => {
     const payload = JSON.parse(evt.data || '{}');
     if (typeof payload.total === 'number') total = payload.total;
-    statusEl.textContent = `Checking ${total} URLs... (${processed}/${total})`;
+    setStatus(`Checking ${total} URLs...`);
+    updateProgressBar(processed, total);
   });
 
   es.addEventListener('progress', (evt) => {
     const payload = JSON.parse(evt.data || '{}');
     processed = typeof payload.processed === 'number' ? payload.processed : processed + 1;
-    statusEl.textContent = `Checking ${total} URLs... (${processed}/${total})`;
+    if (typeof payload.total === 'number') total = payload.total;
+    setStatus(`Checking ${total} URLs...`);
+    updateProgressBar(processed, total);
     if (payload.result) {
       lastResults[payload.index] = payload.result;
       appendResultRow(payload.result);
@@ -335,8 +403,10 @@ function listenToCheckStream(jobId, totalHint){
       const elapsed = Date.now() - checkStartTs;
       const label = formatDuration(elapsed);
       sumTimeEl.textContent = label;
+      updateProgressBar(doneCount, payload.total ?? total);
       finish(`Done. Checked ${doneCount} URLs. Time: ${label}`);
     } else {
+      updateProgressBar(doneCount, payload.total ?? total);
       finish(`Done. Checked ${doneCount} URLs.`);
     }
     updateSummary();
@@ -351,6 +421,7 @@ function listenToCheckStream(jobId, totalHint){
       const label = formatDuration(Date.now() - checkStartTs);
       sumTimeEl.textContent = label;
     }
+    updateProgressBar(payload.processed ?? processed, payload.total ?? total);
     finish(`Error: ${payload.error || 'Check failed'}`);
   });
 
@@ -371,13 +442,15 @@ function cancelCheckJob(){
 
 async function startCheck(lines){
   if (!lines.length) {
-    statusEl.textContent = 'No URLs found in sitemap.';
+    setStatus('No URLs found in sitemap.');
     return;
   }
   resetResults();
   checkStartTs = Date.now();
   sumTimeEl.textContent = '0s';
-  statusEl.textContent = 'Starting check for '+lines.length+' URLs...';
+  setStatus(`Starting check for ${lines.length} URLs...`);
+  updateProgressBar(0, lines.length);
+  startElapsedTimer();
   if (checkSource) {
     checkSource.close();
     checkSource = null;
@@ -388,7 +461,9 @@ async function startCheck(lines){
     checkJobId = json.jobId;
     listenToCheckStream(json.jobId, json.total);
   }catch(err){
-    statusEl.textContent = 'Error: '+err.message;
+    setStatus('Error: '+err.message);
+    resetProgressBar();
+    stopElapsedTimer();
   }
 }
 

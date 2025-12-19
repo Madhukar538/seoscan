@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>H1 Checker</title>
+  <title>SEO SCAN</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="page">
     <header class="app-header">
       <div class="brand">
-        <span class="brand-mark">H1</span>
+        <span class="brand-mark">SEO</span>
         <div>
-          <div class="brand-title">H1 Checker</div>
+          <div class="brand-title">SEO SCAN</div>
           <div class="brand-sub">Sitemap-driven SEO scan</div>
         </div>
       </div>
@@ -39,7 +39,7 @@
 
       <main class="content">
         <div class="container">
-          <h1>H1 Checker</h1>
+          <h1>SEO SCAN</h1>
           <p>Enter a sitemap.xml URL and we'll load + check it.</p>
           <div class="sitemap-controls">
           <div class="mode-toggle" role="group" aria-label="Input mode">
@@ -112,19 +112,22 @@
               </div>
               <div class="summary-card">
                 <div class="summary-label">200</div>
-                <div class="summary-value" id="sum200">0</div>
+                <div class="summary-value serverstatus" id="sum200">0</div>
               </div>
               <div class="summary-card">
                 <div class="summary-label">4xx</div>
-                <div class="summary-value" id="sum4xx">0</div>
+                <div class="summary-value serverstatus" id="sum4xx">0</div>
               </div>
               <div class="summary-card">
                 <div class="summary-label">5xx</div>
-                <div class="summary-value" id="sum5xx">0</div>
+                <div class="summary-value serverstatus" id="sum5xx">0</div>
               </div>
             </div>
           </div>
           <div id="status"></div>
+          <div id="statusBar" class="status-bar hidden" role="progressbar" aria-label="URL check progress" aria-hidden="true" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="status-fill"></span>
+          </div>
           <div class="accordion">
             <button id="resultsToggle" class="accordion-toggle" type="button" aria-expanded="false" aria-controls="resultsPanel" disabled>Show results table</button>
             <div id="resultsPanel" class="accordion-panel hidden">
@@ -139,7 +142,7 @@
     </div>
 
     <footer class="app-footer">
-      <span>H1 Checker</span>
+      <span>SEO SCAN</span>
       <span>Copyrights @ Revalsys Technologies</span>
     </footer>
   </div>
